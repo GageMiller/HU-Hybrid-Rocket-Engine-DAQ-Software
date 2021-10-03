@@ -43,7 +43,7 @@ with open('load_cell_data.csv', mode='w') as load_cell_data:
 
             hx.power_down()
             hx.power_up()
-            time.sleep(0.1)
+            #time.sleep(0.1)
 
         except (KeyboardInterrupt, SystemExit):
             cleanAndExit()
