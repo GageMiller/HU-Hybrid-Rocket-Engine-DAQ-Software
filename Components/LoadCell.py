@@ -39,7 +39,7 @@ with open('load_cell_data.csv', mode='w') as load_cell_data:
             val = hx.get_weight(5)
             print(val)
             load_cell_writer = csv.writer(load_cell_data, delimiter=',', quotechar='=', quoting=csv.QUOTE_MINIMAL)
-            load_cell_writer.writerow([time.time(), hx.get_weight])
+            load_cell_writer.writerow([time.time(), hx.get_weight(5)])
 
             hx.power_down()
             hx.power_up()
