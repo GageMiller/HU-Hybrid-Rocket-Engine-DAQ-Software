@@ -1,4 +1,3 @@
-#import LoadCell
 from hx711 import HX711
 import RPi.GPIO as GPIO
 from tkinter import *
