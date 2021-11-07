@@ -1,34 +1,39 @@
-from PIL import Image, ImageTk
 import cv2, threading, time
+import RPi.GPIO as GPIO
 
 class camThread(threading.Thread):
-    def __init__(self, name, camID, label):
+    def __init__(self, previewName, camID):
         threading.Thread.__init__(self)
-        self.name = name
+        self.previewName = previewName
         self.camID = camID
-        self.label = label
     def run(self):
-        camera = cv2.VideoCapture(self.camID)
-        show_frames(self.name, camera, self.label)
+        camPreview(self.previewName, self.camID)
 
-def startThreads(label1, label2):
-   thread1 = camThread("Camera 1", 0, label1)
-   thread2 = camThread("Camera 2", 2, label2)
+def startLiveFeed():
+   thread1 = camThread("Camera 1", 0)
    thread1.start()
-   thread2.start()
 
-def show_frames(name, camera, label):
-    while camera.isOpened():
-        # Get the latest frame and convert into Image
-        cv2image= cv2.cvtColor(camera.read()[1],cv2.COLOR_BGR2RGB)
-        img = Image.fromarray(cv2image)
-        # Convert image to PhotoImage
-        imgtk = ImageTk.PhotoImage(image = img)
-        label.imgtk = imgtk
-        label.configure(image=imgtk)
-        # Repeat after an interval to capture continiously
-        #label.after(20, show_frames(name, camera, label))
-    #show_frames(name, camera, label)
+def camPreview(previewName, camID):
+    cv2.namedWindow(previewName)
+    cam = cv2.VideoCapture(camID)
+    width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH) + 0.5)
+    height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT) + 0.5)
+    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+    out = cv2.VideoWriter('output.avi', fourcc, 20.0, (width, height))
+    
+    while(cam.isOpened()):
+        ret, frame = cam.read()
+        if ret:
+            # write the frame
+            if(not GPIO.input(24)):
+                out.write(frame)
 
+            cv2.imshow(previewName,frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        else:
+            break
 
-
+    cam.release()
+    out.release()
+    cv2.destroyWindow(previewName)

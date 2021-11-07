@@ -7,22 +7,46 @@ from matplotlib import pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import style
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import csv, time
+import csv, time, sys
 from PIL import Image, ImageTk
 import RPi.GPIO as GPIO
 
+GPIO.setup(24, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 class window(Frame):
     def __init__(self, master=None):
         Frame.__init__(self, master)
 
-firstRun = True
+def writeLoadCellData(value):
+    with open('load_cell_data.csv', mode='a+') as load_cell_data:
+        load_cell_writer = csv.writer(load_cell_data, delimiter=',', quotechar='=', quoting=csv.QUOTE_MINIMAL)
+        if(not GPIO.input(24)):
+            value = loadCell.getWeight(5)
+            load_cell_writer.writerow([value, time.time()])
+
 root = Tk()
 app = window(master=root)
 app.master.geometry('1920x1080+0+0')
 app.master.title("Hybrid Rocket Engine Data Acquisition Software")
+
+open('load_cell_data.csv', 'w').close()
+
+photoRed = ImageTk.PhotoImage(Image.open("/home/pi/Documents/HU-Hybrid-Rocket-Engine-DAQ-Software/Media/Red.png"))
+photoGreen = ImageTk.PhotoImage(Image.open("/home/pi/Documents/HU-Hybrid-Rocket-Engine-DAQ-Software/Media/Green.png"))
+imgLabel = Label(root, image=photoRed)
+imgLabel.grid(row=1,column=3, ipadx=175)
+
+def safeAndArmCheck(imgLabel):
+    if(not GPIO.input(24)):
+        #imgLabel = Label(root, image=photoRed)
+        #imgLabel.grid(row=1,column=3, ipadx=175)
+        imgLabel.configure(image=photoRed)
+    else:
+        #imgLabel = Label(root, image=photoGreen)
+        #imgLabel.grid(row=1,column=3, ipadx=175)
+        imgLabel.configure(image=photoGreen)
+
 loadCellTxt = Label(root, text="Load Cell")
-#loadCellTxt.pack()
 
 xar = []
 yar = []
@@ -41,43 +65,22 @@ def animate(i):
     line.set_data(xar, yar)
     ax1.set_xlim(0, i+1)
     ax1.set_ylim(0, max(yar))
-    #Data Saving
-    if(GPIO.input(24)):
-        with open('load_cell_data.csv', mode='w') as load_cell_data:
-            load_cell_writer = csv.writer(load_cell_data, delimiter=',', quotechar='=', quoting=csv.QUOTE_MINIMAL)
-            load_cell_writer.writerow([time.time(), value])
+    safeAndArmCheck(imgLabel)
+    writeLoadCellData(value)
+    #time.sleep(0.5)
 
 plotcanvas = FigureCanvasTkAgg(fig, app.master)
 plotcanvas.get_tk_widget().grid(column=0, row=1, columnspan=2)
-ani = animation.FuncAnimation(fig, animate, interval=100, blit=False)
+
+ani = animation.FuncAnimation(fig, animate, blit=False)
 
 img = Image.open("/home/pi/Documents/HU-Hybrid-Rocket-Engine-DAQ-Software/Media/HU-Logo.png")
 photo = ImageTk.PhotoImage(img)
-imgLabel = Label(root, image=photo)
-imgLabel.image = photo
-imgLabel.grid(row=0,column=3, sticky=tk.N,ipadx=175)
+imgLabel1 = Label(root, image=photo)
+imgLabel1.image = photo
+imgLabel1.grid(row=0,column=3, sticky=tk.N,ipadx=175,ipady=150)
 
-#Safe and Arm Check
-if(GPIO.input(24)):
-    img = Image.open("/home/pi/Documents/HU-Hybrid-Rocket-Engine-DAQ-Software/Media/Green.png")
-    photo = ImageTk.PhotoImage(img)
-    imgLabel = Label(root, image=photo)
-    imgLabel.image = photo
-    imgLabel.grid(row=2,column=3, ipadx=175)
-else:
-    img = Image.open("/home/pi/Documents/HU-Hybrid-Rocket-Engine-DAQ-Software/Media/Red.png")
-    photo = ImageTk.PhotoImage(img)
-    imgLabel = Label(root, image=photo)
-    imgLabel.image = photo
-    imgLabel.grid(row=2,column=3, ipadx=175)
-
-label1 = Label(root)
-label2 = Label(root)
-label1.grid(row=0, column=0)
-label2.grid(row=0, column=1)
-
-if(firstRun == True):
-    camera.startThreads(label1, label2)
-    firstRun = False
+camera.startLiveFeed()
 
 root.mainloop()
+        
