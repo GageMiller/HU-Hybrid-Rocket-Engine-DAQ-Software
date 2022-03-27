@@ -10,6 +10,10 @@ __pycache__/
 # C extensions
 *.so
 
+*.csv
+
+*.avi
+
 # Distribution / packaging
 .Python
 build/
@@ -131,3 +135,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+load_cell_data.csv
