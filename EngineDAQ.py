@@ -6,7 +6,6 @@ to easily check the status of and collect data from the various sensor
 on the engine. It also displays whether the engine control is armed.
 The GUI is written in tkinter.
 '''
-import Components.LoadCell as loadCell
 import Components.Camera as camera
 from tkinter import *
 import tkinter as tk
@@ -18,7 +17,11 @@ import csv, time
 from PIL import Image, ImageTk
 import RPi.GPIO as GPIO
 
+#Comment this import out when the load cell is not connected
+import Components.LoadCell as loadCell
+
 #Safe and arm switch GPIO setup
+GPIO.setmode(GPIO.BOARD)
 GPIO.setup(24, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 class window(Frame):
@@ -67,7 +70,12 @@ line, = ax1.plot(xar, yar, 'r', marker='o')
 
 #Animates the live matplotlib plot of the load cell
 def animate(i):
+    #If load Cell connected
     value = loadCell.getWeight(5)
+
+    #If load cell not connected
+    #value = 1
+
     if(not GPIO.input(24)):
         data.append([time.time(), value])
     yar.append(value)
