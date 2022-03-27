@@ -20,8 +20,10 @@ import RPi.GPIO as GPIO
 #Comment this import out when the load cell is not connected
 import Components.LoadCell as loadCell
 
+#Comment this line out when the load cell IS connected
+#GPIO.setmode(GPIO.BOARD)
+
 #Safe and arm switch GPIO setup
-GPIO.setmode(GPIO.BOARD)
 GPIO.setup(24, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 class window(Frame):
