@@ -16,6 +16,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import csv, time
 from PIL import Image, ImageTk
 import RPi.GPIO as GPIO
+import serial, struct
+from time import sleep
 
 #Comment this import out when the load cell is not connected
 import Components.LoadCell as loadCell
@@ -25,6 +27,10 @@ import Components.LoadCell as loadCell
 
 #Safe and arm switch GPIO setup
 GPIO.setup(24, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+ser = serial.Serial('/dev/serial0',
+                    baudrate=9600,
+                    timeout=1)
 
 class window(Frame):
     def __init__(self, master=None):
@@ -70,9 +76,19 @@ ylim = 100
 ax1.set_ylim(0, ylim)
 line, = ax1.plot(xar, yar, 'r', marker='o')
 
+xar_p = [0]
+yar_p = [0]
+
+style.use('ggplot')
+fig_p = plt.figure(figsize=(14, 4.5), dpi=100)
+ax1_p = fig_p.add_subplot(1, 1, 1)
+ylim = 500
+ax1_p.set_ylim(0, ylim)
+line_p, = ax1_p.plot(xar_p, yar_p, 'r', marker='o')
+
 #Animates the live matplotlib plot of the load cell
-def animate(i):
-    #If load Cell connected
+def animate_l(i):
+    #If load Cell is connected
     value = loadCell.getWeight(5)
 
     #If load cell not connected
@@ -87,10 +103,41 @@ def animate(i):
     ax1.set_ylim(0, max(yar))
     safeAndArmCheck(imgLabel)
 
+    #received_data = ser.read()                                      #read serial port
+    #print(int.from_bytes(received_data, "big"))                     #print received data
+
+#Animates the live matplotlib plot of the load cell
+def animate_p(i):
+    #If pressure sensor is connected
+    if ser.inWaiting:
+        received_data = ser.readline()
+    else:
+        received_data = b''
+
+    if(received_data is not b''):
+        pressureValue = int(received_data[:3])
+        volts = pressureValue * 5.0 / 1023.0
+        PSI = 150.0*(volts-1.0)
+        if(not GPIO.input(24)):
+            data.append([time.time(), volts, PSI])
+        if(volts >= 1.0):
+            yar_p.append(PSI)                                
+            xar_p.append(i)
+            line_p.set_data(xar_p, yar_p)
+        ax1_p.set_xlim(0, i+1)
+        ax1_p.set_ylim(0, max(yar_p))
+
+    
+
 plotcanvas = FigureCanvasTkAgg(fig, app.master)
 plotcanvas.get_tk_widget().grid(column=0, row=1, columnspan=2)
 
-ani = animation.FuncAnimation(fig, animate, blit=False, interval=250)
+ani = animation.FuncAnimation(fig, animate_l, blit=False, interval=250)
+
+plotcanvas_p = FigureCanvasTkAgg(fig_p, app.master)
+plotcanvas_p.get_tk_widget().grid(column=0, row=0, columnspan=2)
+
+ani_p = animation.FuncAnimation(fig_p, animate_p, blit=False, interval=250)
 
 #Harding logo
 img = Image.open("/home/pi/Documents/HU-Hybrid-Rocket-Engine-DAQ-Software/Media/HU-Logo.png")
